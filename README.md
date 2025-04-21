@@ -117,7 +117,7 @@ Follow the steps below to use the code contained in this repository to get your 
 
 ![](readme_pictures/ssm-3.png)
 
-Sample values for parameters:
+Sample values and descriptions for parameters:
 
 | Field | Required? | Sample value | Description
 | -- | -- | -- | -- |
