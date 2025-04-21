@@ -8,15 +8,15 @@ Check below the pre requisites required for running this tool, and the How to Ru
 
 Please ensure following pre-requisites are met prior to using this code for updating your HANA DB in HA setup:
 
-1. **Ensure you have a pre-configured SAP HANA 2.0+ database environment** running in high availability mode on your AWS EC2 instances. While we won't cover the initial setup in this blog, you're welcome to explore our SAP on AWS 
+1. Ensure you have a **pre-configured SAP HANA 2.0+ database environment** running in high availability mode on your AWS EC2 instances. While we won't cover the initial setup in this blog, you're welcome to explore our SAP on AWS 
 <a href="https://docs.aws.amazon.com/sap/latest/sap-hana/sap-oip-sap-on-aws-high-availability-setup.html" target="_blank">documentation</a> if you need assistance with the configuration.
 
-2. Ensure you have configured a user account in your SAP HANA SYSTEMDB with sufficient privileges to perform database updates. This user will be referenced in the automation process, so it's essential to verify the account has all necessary authorizations before proceeding with the upgrade.
+2. Ensure you have configured a **user account in your SAP HANA SYSTEMDB** with sufficient privileges to perform database updates. This user will be referenced in the automation process, so it's essential to verify the account has all necessary authorizations before proceeding with the upgrade.
 we strongly recommend following the principle of least privilege when configuring your SAP HANA database user permissions. For more details see, <a href="https://help.sap.com/docs/SAP_HANA_PLATFORM/2c1988d620e04368aa4103bf26f17727/df3de8c31cef45c0847d2804b97604ea.html" target="_blank">Create a Lesser-Privileged Database User for Update.</a>
 
-3. Verify that your SAP HANA database EC2 instances are managed by <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up-ec2.html" target="_blank">AWS Systems Manager</a>. This is essential as our automation solution leverages Systems Manager's capabilities for seamless management and operations.
+3. Verify that your SAP HANA database **EC2 instances are managed by <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up-ec2.html" target="_blank">AWS Systems Manager</a>**. This is essential as our automation solution leverages Systems Manager's capabilities for seamless management and operations.
 
-4. Ensure your SAP HANA database instances have the necessary permissions to access the Amazon S3 bucket containing your SAP HANA software media. This access is crucial for the automation process to retrieve the required installation files seamlessly. 
+4. Ensure your SAP HANA database instances have the **necessary permissions to access the Amazon S3 bucket** containing your SAP HANA software media. This access is crucial for the automation process to retrieve the required installation files seamlessly. 
 For your reference, here is a sample Amazon S3 bucket policy below. This example demonstrates how to grant a specific IAM role within your account the necessary permissions to download files from your S3 bucket. Feel free to customize this policy according to your security requirements.
 
 ```
@@ -47,7 +47,7 @@ For more information, please refer
 * <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-policy-language-overview.html" target="_blank">Policies and Permissions in Amazon S3</a>
 * <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html" target="_blank">Security best practices for Amazon S3</a>
 
-5. If you're leveraging a central or shared services account for automation (recommended AWS best practice), <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/running-automations-multiple-accounts-regions.html" target="_blank">ensure you have the appropriate cross-account permissions configured</a> before proceeding.
+5. If you're leveraging a **central or shared services account** for automation (recommended AWS best practice), <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/running-automations-multiple-accounts-regions.html" target="_blank">ensure you have the appropriate cross-account permissions configured</a> before proceeding.
 
 6. The automation relies on AWS Secrets Manager to securely retrieve the necessary SAP HANA database credentials. Ensure you have created the required secrets (sapadm user password and SYSTEM user password) in AWS Secrets Manager and configured appropriate permissions for your target AWS account to access these secrets.
 Below, we're sharing a sample cross-account policy for AWS Secrets Manager. This example illustrates how to configure permissions that allow a specific AWS account to access secrets stored in another account. You can use this as a reference and adapt it to align with your organization's security requirements.
