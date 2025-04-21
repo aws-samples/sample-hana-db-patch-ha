@@ -49,7 +49,7 @@ For more information, please refer
 
 5. If you're leveraging a **central or shared services account** for automation (recommended AWS best practice), <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/running-automations-multiple-accounts-regions.html" target="_blank">ensure you have the appropriate cross-account permissions configured</a> before proceeding.
 
-6. The automation relies on AWS Secrets Manager to securely retrieve the necessary SAP HANA database credentials. Ensure you have created the required secrets (sapadm user password and SYSTEM user password) in AWS Secrets Manager and configured appropriate permissions for your target AWS account to access these secrets.
+6. The automation relies on AWS Secrets Manager to securely retrieve the necessary SAP HANA database credentials. Ensure **you have created the required secrets (sapadm user password and SYSTEM user password) in AWS Secrets Manager** and configured appropriate permissions for your target AWS account to access these secrets.
 Below, we're sharing a sample cross-account policy for AWS Secrets Manager. This example illustrates how to configure permissions that allow a specific AWS account to access secrets stored in another account. You can use this as a reference and adapt it to align with your organization's security requirements.
 
 ```
@@ -71,7 +71,7 @@ For your reference, we've included a sample structure of how your AWS Secrets Ma
 
 ![](readme_pictures/secret_example.png)
 
-7.	To enable secure cross-account access to sensitive information, our solution utilizes AWS Secrets Manager with AWS KMS encryption. The encrypted secrets are protected by a KMS key that must be accessible to all participating AWS accounts. This setup ensures secure parameter sharing while maintaining proper access controls across your AWS environment. For detailed guidance on configuring cross-account secrets access, please refer to our <a href="https://docs.aws.amazon.com/kms/latest/developerguide/control-access.html" target="_blank">documentation</a>.
+7. To enable secure cross-account access to sensitive information, our solution utilizes AWS Secrets Manager with AWS KMS encryption. The encrypted secrets are protected by a KMS key that must be accessible to all participating AWS accounts. This setup ensures secure parameter sharing while maintaining proper access controls across your AWS environment. For detailed guidance on configuring cross-account secrets access, please refer to our <a href="https://docs.aws.amazon.com/kms/latest/developerguide/control-access.html" target="_blank">documentation</a>.
 
 Below, we provide the default KMS key policy statement that's automatically applied when creating KMS keys programmatically. If you're using the AWS KMS console to create your keys, you'll find this as the primary policy statement in your default configuration. You can use this as a reference while setting up cross-account access for your encryption needs.
 
@@ -87,19 +87,24 @@ Below, we provide the default KMS key policy statement that's automatically appl
 }
 ```
 
-8.	Space requirement for S3 sync on EC2 local storage
-9.	Add a tag to your HANA DB EC2 instances named “Hostname: <hostname>”. You will use their hostname value for running the solution in a step below.
+8. **Space requirement for S3** sync on EC2 local storage
+9. **Add a tag to your HANA DB EC2 instances** named “Hostname: <hostname>”. You will use their hostname value for running the solution in a step below.
 
 ## How to run the code
 
 Follow the steps below to use the code contained in this repository to get your HANA Databases updated.
 
-1. Create the secrets required on SecretsManager on the same account you have your HANA Databases. Follow the example given on step 6 of the Pre-Requisites section.
-2. Create the S3 bucket where you will upload the update files to.
-3. Use the CloudFormation creating a stack guide to deploy the solution. In the repository, under folder cloudformation, you’ll find 3 different files to be used according to your environment:
+### Deploy
+
+1. **Create the secrets** required on SecretsManager on the same account you have your HANA Databases. Follow the example given on step 6 of the Pre-Requisites section.
+2. **Create the S3 bucket** where you will upload the update files to.
+3. **Use the <a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html" target="_blank">CloudFormation creating a stack guide</a>** to deploy the solution. In the repository, under folder cloudformation, you’ll find 3 different files to be used according to your environment:
 * hana_db_patch – to be used for databases not configured for HA. This procedure will cause downtime in the target database.
 * hana_db_patch_ha_rhel – to be used for databases configured for HA in a RHEL system. This will achieve the nZDT concept explained in the Introduction.
 * hana_db_patch_ha_suse – to be used for databases configured for HA in a SUSE system. This will achieve the nZDT concept explained in the Introduction.
+
+### Running
+
 4. Go to Systems Manager > Documents > select tab “Owned by me” > search for “patch” and open your applicable doc:
 
 ![](readme_pictures/ssm-1.png)
