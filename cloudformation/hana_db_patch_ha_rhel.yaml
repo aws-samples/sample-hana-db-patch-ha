@@ -1,0 +1,283 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+  HanaDatabaseUpdate:
+    Type: AWS::SSM::Document
+    Properties:
+      DocumentType: Automation
+      UpdateMethod: NewVersion
+      Name: "HANADBPatch-HA-RHEL"
+      Content:
+        schemaVersion: "0.3"
+        assumeRole: '{{ AutomationAssumeRole }}'
+        description: "HANA database update automation refer SAP Note:1948334 for possible source version to target versions"
+        parameters:
+          AutomationAssumeRole:
+            default: ''
+            description: (Optional) The ARN of the role that allows Automation to perform the actions on your behalf.
+            type: String
+          SID:
+            description: (Required) SAP HANA DB SID
+            type: String
+          PriHostnameTag:
+            description: (Required) Value for the 'Hostname' tag in the primary HANA DB instance
+            type: String
+          SecHostnameTag:
+            description: (Required) Value for the 'Hostname' tag in the secondary HANA DB instance
+            type: String
+          S3BucketPath:
+            description: S3 Bucket full path where the HANA update Software is located. Example s3://my-bucket/SAP-HANA-Patch-Files/
+            type: "String"
+            default: ""
+          SYSSecret:
+            description: Secret Manager Secret for SYSTEM user password
+            type: "String"
+            default: ""
+          SAPSecret:
+            description: Secret Manager Secret for SAPADM user password
+            type: "String"
+            default: ""
+        mainSteps:
+          - name: "UpdateHANADBSecondary"
+            action: aws:runCommand
+            inputs:
+              DocumentName: AWS-RunShellScript
+              Targets:
+                - Key: tag:Hostname
+                  Values:
+                    - '{{SecHostnameTag}}'
+              Parameters:
+                commands:
+                  - |
+                    PATCH_FOLDER="/tmp/hana/patch"
+                    PASSWORD_FILE="/tmp/update/password.xml"
+                    # 
+                    # Disable cluster services
+                    # 
+                    pcs node standby
+                    # 
+                    # Downloading patch files from S3
+                    # 
+                    SID=$(grep -o ''pf=[^[:space:]]*'' /usr/sap/sapservices | grep _HDB | awk -F "/" '{print $4}')
+                    SIDLOWER=$(echo ${SID,,})
+                    SIDADM=${SIDLOWER}adm
+                    NN=$(grep -o ''pf=[^[:space:]]*'' /usr/sap/sapservices | grep _HDB | awk -F "/" '{print $7}'|awk -F "_" '{print $2}'|sed 's@^[^0-9]*\([0-9]\+\).*@\1@')
+                    rm -rf $PATCH_FOLDER
+                    mkdir -p /tmp/hana/patch
+                    aws s3 sync --quiet "{{ S3BucketPath }}" "$PATCH_FOLDER" --no-progress
+                    # 
+                    # Creating passwords file
+                    # 
+                    SYSPARAM={{ SYSSecret }}
+                    SAPPARAM={{ SAPSecret }}
+                    AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone/)
+                    REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone/ | sed 's/.$//')
+                    SYSPASSWD=$(aws secretsmanager get-secret-value --secret-id $SYSPARAM --output text | awk '{print $4}')
+                    SAPPASSWD=$(aws secretsmanager get-secret-value --secret-id $SAPPARAM --output text | awk '{print $4}')
+                    # create the password xml file for system db password and sapadm password
+                    mkdir -p /tmp/update
+                    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > $PASSWORD_FILE
+                    echo "<Passwords>" >> $PASSWORD_FILE
+                    echo "<password>${SAPPASSWD}</password>" >> $PASSWORD_FILE
+                    echo "<sapadm_password>${SAPPASSWD}</sapadm_password>" >> $PASSWORD_FILE
+                    echo "<system_user_password>${SYSPASSWD}</system_user_password>" >> $PASSWORD_FILE
+                    echo "</Passwords>" >> $PASSWORD_FILE
+                    #
+                    # Update HANA DB
+                    #
+                    timestamp=$(date +"%Y-%m-%d_%H:%M")
+                    LOGFILE=update_$timestamp.log                    
+                    runuser -l $SIDADM -c "sapcontrol -nr $NN -function GetProcessList"
+                    if [ $? -eq 3 ]
+                    then
+                    echo "HANA is running"
+                    echo "Updating the HANA database"
+                    else
+                    echo "Hana database is not active"
+                    runuser -l $SIDADM -c "HDB start"
+                    fi
+                    chmod 777 "$PATCH_FOLDER"
+                    runuser -l $SIDADM -c "cd $PATCH_FOLDER; SAPCAR -xf $PATCH_FOLDER/IMDB_SERVER*.SAR"
+                    cd $PATCH_FOLDER/SAP_HANA_DATABASE
+                    cat $PASSWORD_FILE | /tmp/hana/patch/SAP_HANA_DATABASE/hdblcm --ignore=check_signature_file --action=update --components=server --batch -sid=$SID  --read_password_from_stdin=xml >> /tmp/update/$LOGFILE 2>&1
+                    SUCCESS=$(grep "SAP HANA Database components updated" /tmp/update/$LOGFILE  | wc -l)
+                    runuser -l $SIDADM -c "HDB start"
+                    cd /home/ec2-user
+                    rm -rf $PASSWORD_FILE
+                    rm -rf $PATCH_FOLDER
+                    if [ $SUCCESS != 1 ]; then
+                      exit 1
+                    fi
+                    #
+                    # Activate cluster back
+                    #
+                    pcs resource cleanup
+                    sleep 10
+                    pcs resource refresh
+                    sleep 10
+                    pcs node unstandby
+                    sleep 10
+                    pcs resource cleanup
+                    sleep 10
+                    pcs resource refresh
+          - name: WaitForReplication
+            action: "aws:runCommand"
+            onFailure: Abort
+            maxAttempts: 3
+            timeoutSeconds: 300
+            inputs:
+              DocumentName: "AWS-RunShellScript"
+              Targets:
+                - Key: tag:Hostname
+                  Values:
+                    - '{{PriHostnameTag}}'
+              Parameters:
+                 commands:
+                   - |
+                     SID=$(grep -o ''pf=[^[:space:]]*'' /usr/sap/sapservices | grep _HDB | awk -F "/" '{print $4}')
+                     SIDLOWER=$(echo ${SID,,})
+                     SIDADM=${SIDLOWER}adm
+                     DB=$(grep -o ''pf=[^[:space:]]*'' /usr/sap/sapservices | grep _HDB | wc -l )
+                     if [ $DB -eq 1 ]; then
+                      # Check for Sync SOK
+                      counter=0
+                      failover_status=$(crm_mon -A1 --output-as text | sed -n '/Node: {{SecHostnameTag}}/,$p' | head -n 12 | grep -c "SOK")
+                      while [ $failover_status != 1 ]; do
+                        sleep 10
+                        ((counter++))
+                        if [ "$counter" -gt "100" ]; then
+                          echo "HANA DB did not failover to the second node in time. Aborting now. Please check and try again"
+                          exit 1
+                        fi
+                        failover_status=$(crm_mon -A1 --output-as text | sed -n '/Node: {{SecHostnameTag}}/,$p' | head -n 12 | grep -c "SOK")
+                      done
+                     else
+                      echo "No DB Service found"
+                      exit 1
+                     fi
+          - name: "UpdateHANADBPrimary"
+            action: aws:runCommand
+            inputs:
+              DocumentName: AWS-RunShellScript
+              Targets:
+                - Key: tag:Hostname
+                  Values:
+                    - '{{PriHostnameTag}}'
+              Parameters:
+                commands:
+                  - |
+                    PATCH_FOLDER="/tmp/hana/patch"
+                    PASSWORD_FILE="/tmp/update/password.xml"
+                    # 
+                    # Disable cluster services
+                    #                    
+                    pcs node standby
+                    #
+                    # Wait for failover to happen
+                    #
+                    # Check for promoted status
+                    counter=0
+                    failover_status=$(crm_mon -A1 --output-as text | sed -n '/Node: {{SecHostnameTag}}/,$p' | head -n 12 | grep -c "PROMOTED")
+                    while [ $failover_status != 1 ]; do
+                      sleep 10
+                      ((counter++))
+                      if [ "$counter" -gt "100" ]; then
+                        echo "HANA DB did not failover to the second node in time. Aborting now. Please check and try again"
+                        exit 1
+                      fi
+                      failover_status=$(crm_mon -A1 --output-as text | sed -n '/Node: {{SecHostnameTag}}/,$p' | head -n 12 | grep -c "PROMOTED")
+                    done
+                    # 
+                    # Downloading patch files from S3
+                    # 
+                    SID=$(grep -o ''pf=[^[:space:]]*'' /usr/sap/sapservices | grep _HDB | awk -F "/" '{print $4}')
+                    SIDLOWER=$(echo ${SID,,})
+                    SIDADM=${SIDLOWER}adm
+                    NN=$(grep -o ''pf=[^[:space:]]*'' /usr/sap/sapservices | grep _HDB | awk -F "/" '{print $7}'|awk -F "_" '{print $2}'|sed 's@^[^0-9]*\([0-9]\+\).*@\1@')
+                    rm -rf $PATCH_FOLDER
+                    mkdir -p /tmp/hana/patch
+                    aws s3 sync --quiet "{{ S3BucketPath }}" "$PATCH_FOLDER" --no-progress
+                    # 
+                    # Creating passwords file
+                    # 
+                    SYSPARAM={{ SYSSecret }}
+                    SAPPARAM={{ SAPSecret }}
+                    AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone/)
+                    REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone/ | sed 's/.$//')
+                    SYSPASSWD=$(aws secretsmanager get-secret-value --secret-id $SYSPARAM --output text | awk '{print $4}')
+                    SAPPASSWD=$(aws secretsmanager get-secret-value --secret-id $SAPPARAM --output text | awk '{print $4}')
+                    # create the password xml file for system db password and sapadm password
+                    mkdir -p /tmp/update
+                    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > $PASSWORD_FILE
+                    echo "<Passwords>" >> $PASSWORD_FILE
+                    echo "<password>${SAPPASSWD}</password>" >> $PASSWORD_FILE
+                    echo "<sapadm_password>${SAPPASSWD}</sapadm_password>" >> $PASSWORD_FILE
+                    echo "<system_user_password>${SYSPASSWD}</system_user_password>" >> $PASSWORD_FILE
+                    echo "</Passwords>" >> $PASSWORD_FILE
+                    #
+                    # Update HANA DB
+                    #
+                    timestamp=$(date +"%Y-%m-%d_%H:%M")
+                    LOGFILE=update_$timestamp.log                    
+                    runuser -l $SIDADM -c "sapcontrol -nr $NN -function GetProcessList"
+                    if [ $? -eq 3 ]
+                    then
+                    echo "HANA is running"
+                    echo "Updating the HANA database"
+                    else
+                    echo "Hana database is not active"
+                    runuser -l $SIDADM -c "HDB start"
+                    fi
+                    chmod 777 "$PATCH_FOLDER"
+                    runuser -l $SIDADM -c "cd $PATCH_FOLDER; SAPCAR -xf $PATCH_FOLDER/IMDB_SERVER*.SAR"
+                    cd $PATCH_FOLDER
+                    cat $PASSWORD_FILE | /tmp/hana/patch/SAP_HANA_DATABASE/hdblcm --ignore=check_signature_file --action=update --components=server --batch -sid=$SID  --read_password_from_stdin=xml >> /tmp/update/$LOGFILE 2>&1
+                    runuser -l $SIDADM -c "HDB start"
+                    SUCCESS=$(grep "SAP HANA Database components updated" /tmp/update/$LOGFILE  | wc -l)
+                    cd /home/ec2-user
+                    rm -rf $PASSWORD_FILE
+                    rm -rf $PATCH_FOLDER
+                    if [ $SUCCESS != 1 ]; then
+                      exit 1
+                    fi
+                    #
+                    # Enable cluster again
+                    #
+                    runuser -l $SIDADM -c "HDB start"
+                    sleep 10
+                    pcs resource cleanup
+                    sleep 10
+                    pcs resource refresh
+                    sleep 10
+                    pcs node unstandby
+                    sleep 30
+                    pcs resource cleanup
+                    sleep 10
+                    pcs resource refresh
+                    # Check for promoted status
+                    counter=0
+                    failover_status=$(crm_mon -A1 --output-as text | sed -n '/Node: {{PriHostnameTag}}/,$p' | head -n 12 | grep -c "DEMOTED")
+                    while [ $failover_status != 1 ]; do
+                      sleep 3
+                      ((counter++))
+                      if [ "$counter" -gt "100" ]; then
+                        echo "HANA DB did not failover to the second node in time. Aborting now. Please check and try again"
+                        runuser -l $SIDADM -c "HDB stop"
+                        sleep 10
+                        runuser -l $SIDADM -c "HDB start"
+                      fi
+                      failover_status=$(crm_mon -A1 --output-as text | sed -n '/Node: {{PriHostnameTag}}/,$p' | head -n 12 | grep -c "DEMOTED")
+                    done
+                    # Check for Sync SOK
+                    counter=0
+                    failover_status=$(crm_mon -A1 --output-as text | sed -n '/Node: {{PriHostnameTag}}/,$p' | head -n 12 | grep -c "SOK")
+                    while [ $failover_status != 1 ]; do
+                      sleep 3
+                      ((counter++))
+                      if [ "$counter" -gt "100" ]; then
+                        echo "HANA DB did not failover to the second node in time. Aborting now. Please check and try again"
+                        exit 1
+                      fi
+                      failover_status=$(crm_mon -A1 --output-as text | sed -n '/Node: {{PriHostnameTag}}/,$p' | head -n 12 | grep -c "SOK")
+                    done
