@@ -1,6 +1,8 @@
-## sample-hana-db-patch-ha
+# sample-hana-db-patch-ha
 
 Use this repository for patching your SAP HANA Database (HA or not). For the full benefits, architectural diagrams and flow of execution, check out the original blog post at this URL.
+
+Check below the pre requisites required for running this tool, and the How to Run section below it for the step-by-step execution.
 
 ## Pre-requisites
 
@@ -67,8 +69,7 @@ Below, we're sharing a sample cross-account policy for AWS Secrets Manager. This
 
 For your reference, we've included a sample structure of how your AWS Secrets Manager secret should be configured. This example demonstrates the expected format and key-value pairs needed for the automation to work correctly. Please ensure your secrets follow a similar structure while using your actual credentials.
 
-![](readme_pictures/secrets.png)
-
+![](readme_pictures/secret_example.png)
 
 7.	To enable secure cross-account access to sensitive information, our solution utilizes AWS Secrets Manager with AWS KMS encryption. The encrypted secrets are protected by a KMS key that must be accessible to all participating AWS accounts. This setup ensures secure parameter sharing while maintaining proper access controls across your AWS environment. For detailed guidance on configuring cross-account secrets access, please refer to our <a href="https://docs.aws.amazon.com/kms/latest/developerguide/control-access.html" target="_blank">documentation</a>.
 
@@ -89,6 +90,30 @@ Below, we provide the default KMS key policy statement that's automatically appl
 8.	Space requirement for S3 sync on EC2 local storage
 9.	Add a tag to your HANA DB EC2 instances named “Hostname: <hostname>”. You will use their hostname value for running the solution in a step below.
 
+## How to run the code
+
+Follow the steps below to use the code contained in this repository to get your HANA Databases updated.
+
+1. Create the secrets required on SecretsManager on the same account you have your HANA Databases. Follow the example given on step 6 of the Pre-Requisites section.
+2. Create the S3 bucket where you will upload the update files to.
+3. Use the CloudFormation creating a stack guide to deploy the solution. In the repository, under folder cloudformation, you’ll find 3 different files to be used according to your environment:
+* hana_db_patch – to be used for databases not configured for HA. This procedure will cause downtime in the target database.
+* hana_db_patch_ha_rhel – to be used for databases configured for HA in a RHEL system. This will achieve the nZDT concept explained in the Introduction.
+* hana_db_patch_ha_suse – to be used for databases configured for HA in a SUSE system. This will achieve the nZDT concept explained in the Introduction.
+4. Go to Systems Manager > Documents > select tab “Owned by me” > search for “patch” and open your applicable doc:
+
+![](readme_pictures/ssm-1.png)
+
+5. Select “Execute automation” on the top right corner:
+
+![](readme_pictures/ssm-2.png)
+
+6. Fill in the required input parameters:
+
+![](readme_pictures/ssm-3.png)
+
+7.	Scroll down and select “Execute”.
+8.	Add screenshot of the successful result
 
 ## Security
 
