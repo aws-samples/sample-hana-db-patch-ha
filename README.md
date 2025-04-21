@@ -1,6 +1,6 @@
 # sample-hana-db-patch-ha
 
-Use this repository for patching your SAP HANA Database (HA or not). For the full benefits, architectural diagrams and flow of execution, check out the original blog post $${\color{red}at this URL}$$.
+Use this repository for patching your SAP HANA Database (HA or not). For the full benefits, architectural diagrams and flow of execution, check out the original blog post $${\color{red}at \space this \space URL}$$.
 
 Check below the pre requisites required for running this tool, and the How to Run section below it for the step-by-step execution.
 
@@ -112,8 +112,8 @@ Follow the steps below to use the code contained in this repository to get your 
 
 ![](readme_pictures/ssm-3.png)
 
-7.	Scroll down and select “Execute”.
-8.	Add screenshot of the successful result
+7. Scroll down and select “Execute”.
+8. $${\color{red}Add \space screenshot \space of \space the \space successful \space result}$$.
 
 ## Security
 
