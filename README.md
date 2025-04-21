@@ -8,7 +8,7 @@ Check below the pre requisites required for running this tool, and the How to Ru
 
 Please ensure following pre-requisites are met prior to using this code for updating your HANA DB in HA setup:
 
-1. Ensure you have a pre-configured SAP HANA 2.0+ database environment running in high availability mode on your AWS EC2 instances. While we won't cover the initial setup in this blog, you're welcome to explore our SAP on AWS 
+1. **Ensure you have a pre-configured SAP HANA 2.0+ database environment** running in high availability mode on your AWS EC2 instances. While we won't cover the initial setup in this blog, you're welcome to explore our SAP on AWS 
 <a href="https://docs.aws.amazon.com/sap/latest/sap-hana/sap-oip-sap-on-aws-high-availability-setup.html" target="_blank">documentation</a> if you need assistance with the configuration.
 
 2. Ensure you have configured a user account in your SAP HANA SYSTEMDB with sufficient privileges to perform database updates. This user will be referenced in the automation process, so it's essential to verify the account has all necessary authorizations before proceeding with the upgrade.
