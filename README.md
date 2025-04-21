@@ -1,6 +1,6 @@
 # sample-hana-db-patch-ha
 
-Use this repository for patching your SAP HANA Database (HA or not). For the full benefits, architectural diagrams and flow of execution, check out the original blog post <div style="color:red">at this URL</div>.
+Use this repository for patching your SAP HANA Database (HA or not). For the full benefits, architectural diagrams and flow of execution, check out the original blog post <p style="color:red">at this URL</p>.
 
 Check below the pre requisites required for running this tool, and the How to Run section below it for the step-by-step execution.
 
