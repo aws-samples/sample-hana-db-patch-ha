@@ -117,6 +117,18 @@ Follow the steps below to use the code contained in this repository to get your 
 
 ![](readme_pictures/ssm-3.png)
 
+Sample values for parameters:
+
+| Field | Required? | Sample value | Description
+| -- | -- | -- | -- |
+| AutomationAsumeRole | No | myRoleName | You can select a specific role to run this automation instead of using the one you are logged in with |
+| S3BucketPath | Yes | s3://my-bucket/SAP_HANA-Patch-Files/ | Full S3 path to the folder containing the update files |
+| SYSSecret | Yes | secret-name-from-secrets-manager-system | Secret name from Secrets Manager containing the password for the user SYSTEM on the HANA DB |
+| SecHostnameTag | Yes | hanadbsec | Value for the tag "Hostname" present on the secondary database |
+| PriHostnameTag | Yes | hanadbpri | Value for the tag "Hostname" present on the primary database |
+| SAPSecret | Yes | secret-name-from-secrets-manager-sapadm | Secret name from Secrets Manager containing the password for the sapadm user on the HANA DBs |
+| SID | Yes | HDB | SID for the HANA DBs
+
 7. Scroll down and select “Execute”.
 8. $${\color{red}Add \space screenshot \space of \space the \space successful \space result}$$.
 
