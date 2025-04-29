@@ -132,7 +132,7 @@ Sample values and descriptions for parameters:
 4. Scroll down and select “Execute”.
 5. Watch for the steps results
 
-![](readme_pictures/ssm-3.png)
+![](readme_pictures/ssm-4.png)
 
 ## Security
 
