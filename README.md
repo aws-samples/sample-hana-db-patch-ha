@@ -105,15 +105,15 @@ Follow the steps below to use the code contained in this repository to get your 
 
 ### Running
 
-4. Go to Systems Manager > Documents > select tab “Owned by me” > search for “patch” and open your applicable doc:
+1. Go to Systems Manager > Documents > select tab “Owned by me” > search for “patch” and open your applicable doc:
 
 ![](readme_pictures/ssm-1.png)
 
-5. Select “Execute automation” on the top right corner:
+2. Select “Execute automation” on the top right corner:
 
 ![](readme_pictures/ssm-2.png)
 
-6. Fill in the required input parameters:
+3. Fill in the required input parameters:
 
 ![](readme_pictures/ssm-3.png)
 
@@ -129,8 +129,8 @@ Sample values and descriptions for parameters:
 | SAPSecret | Yes | secret-name-from-secrets-manager-sapadm | Secret name from Secrets Manager containing the password for the sapadm user on the HANA DBs |
 | SID | Yes | HDB | SID for the HANA DBs
 
-7. Scroll down and select “Execute”.
-8. Watch for the steps results
+4. Scroll down and select “Execute”.
+5. Watch for the steps results
 
 ![](readme_pictures/ssm-3.png)
 
