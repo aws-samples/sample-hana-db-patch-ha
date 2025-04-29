@@ -130,7 +130,9 @@ Sample values and descriptions for parameters:
 | SID | Yes | HDB | SID for the HANA DBs
 
 7. Scroll down and select “Execute”.
-8. $${\color{red}Add \space screenshot \space of \space the \space successful \space result}$$.
+8. Watch for the steps results
+
+![](readme_pictures/ssm-3.png)
 
 ## Security
 
