@@ -1,6 +1,6 @@
 # sample-hana-db-patch-ha
 
-Use this repository for patching your SAP HANA Database (HA or not). For the full benefits, architectural diagrams and flow of execution, check out the [original blog post](https://aws.amazon.com/blogs/awsforsap/automating-sap-hana-db-ha-patch-using-ssm-and-nzdt/)
+Use this repository for patching your SAP HANA Database (HA or not). For the full benefits, architectural diagrams and flow of execution, check out the <a href="https://aws.amazon.com/blogs/awsforsap/automating-sap-hana-db-ha-patch-using-ssm-and-nzdt/" target="_blank">original blog post</a>
 
 Check below the pre requisites required for running this tool, and the How to Run section below it for the step-by-step execution.
 
